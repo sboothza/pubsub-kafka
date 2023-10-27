@@ -19,4 +19,4 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-
+dependencies = ["confluent-kafka >= 2.2.0"]
