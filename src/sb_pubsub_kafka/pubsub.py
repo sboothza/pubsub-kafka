@@ -4,9 +4,9 @@ from threading import Thread
 
 from confluent_kafka import Consumer, KafkaError, KafkaException, Producer
 from confluent_kafka.admin import AdminClient, NewTopic
+from sb_serializer import HardSerializer
 
 from .envelope_mapper import EnvelopeMapper
-from .hard_serializer import HardSerializer
 
 
 class PubSub(Thread):
@@ -30,11 +30,15 @@ class PubSub(Thread):
         self.context = context
         Thread.__init__(self)
 
-    def create_topic(self, num_partitions):
+    def create_topic(self, topic:str, num_partitions):
         admin_client = AdminClient({"bootstrap.servers": self.servers})
         topic_list = []
-        topic_list.append(NewTopic(self.topic, num_partitions, 1))
+        topic_list.append(NewTopic(topic, num_partitions, 1))
         admin_client.create_topics(topic_list)
+
+    def delete_topic(self, topic:str):
+        admin_client = AdminClient({"bootstrap.servers": self.servers})
+        admin_client.delete_topics([topic])
 
     def bind(self, cls, callback):
         self.bindings[cls] = callback
@@ -45,6 +49,8 @@ class PubSub(Thread):
     def publish(self, obj):
         json_str = self.serializer.serialize(obj, False)
         self.producer.produce(self.topic, key="key", value=json_str)
+
+    def flush(self):
         self.producer.flush()
 
     def run(self) -> None:

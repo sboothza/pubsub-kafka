@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sb_pubsub_kafka"
 readme = "README.md"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
     { name = "Stephen Booth", email = "stephen.booth.za@gmail.com" },
 ]
