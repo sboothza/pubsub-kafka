@@ -19,7 +19,7 @@ class TestEnvelope(Envelope):
 The envelope then needs to be registered with `EnvelopeMapper.register(TestEnvelope.Identifier, TestEnvelope)`   
 This allows the subscriber to correctly identify and deserialize the envelope  
 The `correlation_id` is passed through automatically with each message, but it is up to you to use correctly - 
-ie.  Assign the same id to a response message, etc. 
+i.e.  Assign the same id to a response message, etc. 
 
 The `pubsub` class is the most complex, it has an internal thread that polls for messages and invokes the correct 
 callback based on the envelope type.  
@@ -39,4 +39,4 @@ The message pattern is so that it can be used language-agnostically - the same l
 `python -m build `
 
 ## Deploying
-`python -m twine upload --repository testpypi dist/*`
+`python -m twine upload --repository dist/*`

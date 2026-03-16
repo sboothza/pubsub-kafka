@@ -1,2 +1,3 @@
-sb_serializer>=0.0.1
-confluent-kafka>=2.2.0
+sb_serializer>=0.0.3
+confluent-kafka>=2.13.2
+uuid>=1.30

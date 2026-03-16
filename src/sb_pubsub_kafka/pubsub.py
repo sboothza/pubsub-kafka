@@ -11,7 +11,7 @@ from .envelope_mapper import EnvelopeMapper
 
 class PubSub(Thread):
     def __init__(
-            self, serializer: HardSerializer, topic: str, group: str, servers, context=None, offset:str="smallest"
+            self, serializer: HardSerializer, topic: str, group: str, servers, context=None, offset: str = "smallest"
     ):
         self.serializer = serializer
         self.running = True
@@ -30,15 +30,16 @@ class PubSub(Thread):
         self.context = context
         Thread.__init__(self)
 
-    def create_topic(self, topic:str, num_partitions):
+    def create_topic(self, topic: str, num_partitions):
         admin_client = AdminClient({"bootstrap.servers": self.servers})
-        topic_list = []
-        topic_list.append(NewTopic(topic, num_partitions, 1))
-        admin_client.create_topics(topic_list)
+        topic_list = [NewTopic(topic, num_partitions, 1)]
+        for _, future in admin_client.create_topics(topic_list).items():
+            future.result(timeout=30)
 
-    def delete_topic(self, topic:str):
+    def delete_topic(self, topic: str):
         admin_client = AdminClient({"bootstrap.servers": self.servers})
-        admin_client.delete_topics([topic])
+        for _, future in admin_client.delete_topics([topic]).items():
+            future.result(timeout=30)
 
     def bind(self, cls, callback):
         self.bindings[cls] = callback
@@ -70,12 +71,42 @@ class PubSub(Thread):
                     elif msg.error():
                         raise KafkaException(msg.error())
                 else:
-                    raw_data = json.loads(msg.value())
+                    value = msg.value()
+                    if value is None:
+                        sys.stderr.write(
+                            "%% Null value at %s [%d] offset %d, skipping\n"
+                            % (msg.topic(), msg.partition(), msg.offset())
+                        )
+                        continue
+
+                    try:
+                        raw_data = json.loads(value)
+                    except json.JSONDecodeError as e:
+                        sys.stderr.write(
+                            "%% Invalid JSON at %s [%d] offset %d: %s\n"
+                            % (msg.topic(), msg.partition(), msg.offset(), e)
+                        )
+                        continue
+
+                    if not isinstance(raw_data, dict):
+                        sys.stderr.write(
+                            "%% Expected JSON object at %s [%d] offset %d, got %s\n"
+                            % (msg.topic(), msg.partition(), msg.offset(), type(raw_data).__name__)
+                        )
+                        continue
+
                     if "Identifier" in raw_data:
                         identifier = raw_data["Identifier"]
                     elif "identifier" in raw_data:
                         identifier = raw_data["identifier"]
                     else:
+                        continue
+
+                    if not isinstance(identifier, str):
+                        sys.stderr.write(
+                            "%% Identifier must be string at %s [%d] offset %d, got %s\n"
+                            % (msg.topic(), msg.partition(), msg.offset(), type(identifier).__name__)
+                        )
                         continue
 
                     type = EnvelopeMapper.type_from_identifier(identifier)

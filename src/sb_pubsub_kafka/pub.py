@@ -19,13 +19,14 @@ class Pub(object):
 
     def create_topic(self, topic:str, num_partitions):
         admin_client = AdminClient({"bootstrap.servers": self.servers})
-        topic_list = []
-        topic_list.append(NewTopic(topic, num_partitions, 1))
-        admin_client.create_topics(topic_list)
+        topic_list = [NewTopic(topic, num_partitions, 1)]
+        for _, future in admin_client.create_topics(topic_list).items():
+            future.result(timeout=30)
 
     def delete_topic(self, topic:str):
         admin_client = AdminClient({"bootstrap.servers": self.servers})
-        admin_client.delete_topics([topic])
+        for _, future in admin_client.delete_topics([topic]).items():
+            future.result(timeout=30)
 
     def publish(self, obj, topic:str):
         json_str = self.serializer.serialize(obj, False)
